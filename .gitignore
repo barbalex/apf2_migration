@@ -45,3 +45,17 @@ $RECYCLE.BIN/
 Network Trash Folder
 Temporary Items
 .apdisk
+
+
+
+/*.sublime-workspace
+/.ftppass
+node_modules/
+ssl/
+dist/
+.idea/
+npm-debug.log
+dbPass.json
+sftpPass.json
+*.map
+*.TMP
