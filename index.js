@@ -40,23 +40,38 @@ pg.connect(pgConStringApflora, (error, apfPg, done) => {
       console.log('an error occured when trying to connect to db apflora_beob')
     }
     console.log('connected to apflora_beob on postgres')
-    // start importing
-    apfMysql.query(`SELECT * FROM apflora.adresse`, (error, results) => {
-      if (error) console.log('error querying adresse from mysql')
-      console.log('first result from querying adresse', results[0])
-      const fields = _.keys(results[0]).map((value) => JSON.stringify(value)).join(', ')
-      // const fields = _.keys(results[0]).join(',')
-      console.log('fields', fields)
-      results.forEach((row, index) => {
-        let values = _.values(row).map((value) => JSON.stringify(value)).join(', ').replace(/"/g, "'")
-        const sql = `INSERT INTO adresse (${fields}) VALUES (${values})`
-        if (index < 1) console.log('sql', sql)
-        apfPg.query(
-          sql,
-          (result) => {
-            if (index < 1) console.log('result from inserting adresse in to postgres', result)
-          }
-        )
+    // get list of all tables
+    const sql = `SELECT
+            table_schema || '.' || table_name
+          FROM
+              information_schema.tables
+          WHERE
+              table_type = 'BASE TABLE'
+          AND
+              table_schema NOT IN ('pg_catalog', 'information_schema');`
+    apfPg.query(sql, (error, result) => {
+      const tablesWithSchema = result.rows.map((row) => row['?column?'])
+      const tables = tablesWithSchema.map((table) => table.replace('public.', ''))
+      console.log('tables', tables)
+      tables.forEach((table) => {
+        // start importing
+        apfMysql.query(`SELECT * FROM apflora.${table}`, (error, results) => {
+          if (error) console.log('error querying adresse from mysql')
+          // need to join field names, enclosed in double quotes
+          const fields = _.keys(results[0]).map((value) => JSON.stringify(value)).join(', ')
+          console.log('fields', fields)
+          results.forEach((row, index) => {
+            // need to join values, strings enclosed in single quotes
+            const values = _.values(row).map((value) => JSON.stringify(value).replace(/\'/, '`').replace(/^"/g, "'").replace(/"$/g, "'")).join(', ')
+            const sql = `INSERT INTO ${table} (${fields}) VALUES (${values})`
+            apfPg.query(sql, (error) => {
+              if (error) {
+                console.log('error', error)
+                console.log('at row', row)
+              }
+            })
+          })
+        })
       })
     })
   })
