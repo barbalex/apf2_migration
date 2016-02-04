@@ -55,7 +55,8 @@ ssl/
 dist/
 .idea/
 npm-debug.log
-dbPass.json
+mysqlDbPass.json
+pgDbPass.json
 sftpPass.json
 *.map
 *.TMP
